@@ -94,4 +94,24 @@ class AuthService
             ]
         );
     }
+
+    /**
+     * Logout user - clear session and invalidate token
+     */
+    public function logout(): void
+    {
+        // Get authenticated user
+        $user = auth()->user();
+
+        if ($user) {
+            // Clear session from users_activity
+            UserActivity::where('user_id', $user->id)->update([
+                'session_token' => null,
+                'session_expires_at' => null,
+            ]);
+
+            // Invalidate JWT token
+            JWTAuth::invalidate(JWTAuth::getToken());
+        }
+    }
 }
