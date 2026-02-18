@@ -7,7 +7,16 @@ import VotepollingPage from "@/pages/VotepollingPage";
 import CreatePollingPage from "@/pages/CreatepollingPage";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 
+import { useEffect } from "react";
+import { useAuthStore } from "@/stores/authStore";
+
 function App() {
+  const initializeAuth = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <>
       <Toaster position="top-right" richColors />

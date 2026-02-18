@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Topbar from "@/components/common/Topbar";
 import {
   Search,
@@ -15,10 +15,11 @@ import {
 import Lottie from "lottie-react";
 import greenDotAnimation from "@/assets/lottie/green-dot.json";
 import Button from "@/components/common/Button";
-import { mockPolls, type Poll } from "@/utils/dummydata";
+import { type Poll } from "@/utils/dummydata";
 import CardVotenow from "@/components/polls/votepolling/CardVotenow";
 import CardResults from "@/components/polls/votepolling/CardResults";
 import BottomBar from "@/components/common/BottomBar";
+import { usePollStore } from "@/stores/pollStore";
 
 type PollType = "all" | "single" | "multiple" | "ranked";
 type PollStatus = "all" | "active" | "closed";
@@ -48,10 +49,15 @@ const pollTypeBadgeClass: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [6, 9, 12, 20];
 
 export default function VotepollingPage() {
-  const [pollTypeFilter, setPollTypeFilter] = useState<PollType>("all");
-  const [statusFilter, setStatusFilter] = useState<PollStatus>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const {
+    filteredPolls,
+    filters,
+    viewMode,
+    initialize,
+    setFilter,
+    setViewMode,
+  } = usePollStore();
+
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(6);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -60,6 +66,11 @@ export default function VotepollingPage() {
   const [selectedResultPoll, setSelectedResultPoll] = useState<Poll | null>(
     null,
   );
+
+  // Initialize store on mount
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -71,20 +82,13 @@ export default function VotepollingPage() {
     setPageIndex(0);
   };
 
-  const filteredData = useMemo(() => {
-    let data = mockPolls.filter((poll) => {
-      const matchesType =
-        pollTypeFilter === "all" || poll.type === pollTypeFilter;
-      const matchesStatus =
-        statusFilter === "all" || poll.status === statusFilter;
-      const matchesSearch =
-        poll.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        poll.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesType && matchesStatus && matchesSearch;
-    });
+  const sortedData = useMemo(() => {
+    // Start with filtered data from store
+    let data = [...filteredPolls];
 
+    // Apply sorting locally
     if (sortKey) {
-      data = [...data].sort((a, b) => {
+      data.sort((a, b) => {
         const aVal = a[sortKey];
         const bVal = b[sortKey];
         if (typeof aVal === "number" && typeof bVal === "number") {
@@ -96,12 +100,13 @@ export default function VotepollingPage() {
       });
     }
     return data;
-  }, [pollTypeFilter, statusFilter, searchQuery, sortKey, sortDir]);
+  }, [filteredPolls, sortKey, sortDir]);
 
-  const totalPages = Math.ceil(filteredData.length / pageSize);
-  const startItem = filteredData.length === 0 ? 0 : pageIndex * pageSize + 1;
-  const endItem = Math.min((pageIndex + 1) * pageSize, filteredData.length);
-  const pageData = filteredData.slice(
+  // Pagination logic on sortedData
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const startItem = sortedData.length === 0 ? 0 : pageIndex * pageSize + 1;
+  const endItem = Math.min((pageIndex + 1) * pageSize, sortedData.length);
+  const pageData = sortedData.slice(
     pageIndex * pageSize,
     (pageIndex + 1) * pageSize,
   );
@@ -156,11 +161,11 @@ export default function VotepollingPage() {
               <button
                 key={value}
                 onClick={() => {
-                  setPollTypeFilter(value as PollType);
+                  setFilter("type", value);
                   setPageIndex(0);
                 }}
                 className={`px-6 py-2.5 rounded-full font-medium transition-all text-sm ${
-                  pollTypeFilter === value
+                  filters.type === value
                     ? value === "ranked"
                       ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg"
                       : "bg-white text-gray-900 shadow-md"
@@ -182,9 +187,9 @@ export default function VotepollingPage() {
               <input
                 type="text"
                 placeholder="Search polls by title or description..."
-                value={searchQuery}
+                value={filters.search}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  setFilter("search", e.target.value);
                   setPageIndex(0);
                 }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm"
@@ -195,11 +200,11 @@ export default function VotepollingPage() {
                 <button
                   key={s}
                   onClick={() => {
-                    setStatusFilter(s);
+                    setFilter("status", s);
                     setPageIndex(0);
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    statusFilter === s
+                    filters.status === s
                       ? "bg-gray-900 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
@@ -257,7 +262,7 @@ export default function VotepollingPage() {
 
             {/* Count badge */}
             <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium text-xs">
-              {startItem}–{endItem} dari {filteredData.length}
+              {startItem}–{endItem} dari {sortedData.length}
             </span>
           </div>
 
@@ -454,13 +459,7 @@ export default function VotepollingPage() {
                             <Button
                               variant="primary"
                               size="sm"
-                              onClick={() => {
-                                console.log(
-                                  "Clicked Vote button for poll:",
-                                  poll.id,
-                                );
-                                setSelectedPoll(poll);
-                              }}
+                              onClick={() => setSelectedPoll(poll)}
                             >
                               Vote
                             </Button>
@@ -482,7 +481,7 @@ export default function VotepollingPage() {
           )}
 
           {/* ===== PAGINATION (bottom of card) ===== */}
-          {filteredData.length > 0 && (
+          {sortedData.length > 0 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <p className="text-sm text-gray-500">
                 Page {pageIndex + 1} of {totalPages}

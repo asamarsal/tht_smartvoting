@@ -1,34 +1,25 @@
-import { useState } from "react";
+import { usePollForm } from "@/hooks/usePollForm";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import { Plus, X, GripVertical } from "lucide-react";
 
 export default function CardRankedChoice() {
-  const [pollTitle, setPollTitle] = useState("");
-  const [pollDescription, setPollDescription] = useState("");
-  const [options, setOptions] = useState<string[]>(["", ""]);
-
-  const addOption = () => {
-    setOptions([...options, ""]);
-  };
-
-  const removeOption = (index: number) => {
-    if (options.length > 2) {
-      setOptions(options.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateOption = (index: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[index] = value;
-    setOptions(newOptions);
-  };
+  const {
+    title,
+    setTitle,
+    description,
+    setDescription,
+    options,
+    addOption,
+    removeOption,
+    updateOption,
+  } = usePollForm();
 
   const handleSubmit = () => {
     const pollData = {
       type: "ranked",
-      title: pollTitle,
-      description: pollDescription,
+      title,
+      description,
       options: options.filter((opt) => opt.trim() !== ""),
     };
     console.log("Poll Data:", pollData);
@@ -48,8 +39,8 @@ export default function CardRankedChoice() {
       {/* Poll Title */}
       <Input
         label="Poll Title"
-        value={pollTitle}
-        onChange={(e) => setPollTitle(e.target.value)}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
         placeholder="Enter your poll question"
         required
       />
@@ -60,8 +51,8 @@ export default function CardRankedChoice() {
           Description (Optional)
         </label>
         <textarea
-          value={pollDescription}
-          onChange={(e) => setPollDescription(e.target.value)}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           placeholder="Add more details about your poll"
           rows={3}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none"

@@ -1,102 +1,26 @@
-import { useState, useEffect } from 'react';
-import { authService } from '@/services/authService';
-import type { User, LoginRequest, RegisterRequest } from '@/utils/types';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
-// Custom hook for authentication state management
+// Custom hook wrapper for backward compatibility with existing components
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const authStore = useAuthStore();
 
-  // Initialize auth state from localStorage on mount
+  // Initialize auth state from localStorage on first mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    // Only initialize if not already done/loading
+    if (authStore.isLoading && !authStore.user) {
+      authStore.initialize();
     }
-    setLoading(false);
-  }, []);
-
-  /**
-   * Login user
-   */
-  const login = async (credentials: LoginRequest) => {
-    try {
-      const response = await authService.login(credentials);
-      
-      const { access_token, user } = response.data;
-      
-      // Store in state
-      setToken(access_token);
-      setUser(user);
-      
-      // Store in localStorage
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Login failed'
-      };
-    }
-  };
-
-  /**
-   * Register new user
-   */
-  const register = async (data: RegisterRequest) => {
-    try {
-      const response = await authService.register(data);
-      
-      const { access_token, user } = response.data;
-      
-      // Store in state
-      setToken(access_token);
-      setUser(user);
-      
-      // Store in localStorage
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Registration failed'
-      };
-    }
-  };
-
-  /**
-   * Logout user
-   */
-  const logout = async () => {
-    try {
-      await authService.logout();
-    } catch (error) {
-      // Even if API call fails, clear local data
-      console.error('Logout API failed:', error);
-    } finally {
-      // Clear state and localStorage
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
-  };
+  }, []); // Run once on mount
 
   return {
-    user,
-    token,
-    loading,
-    isAuthenticated: !!token,
-    login,
-    register,
-    logout,
+    user: authStore.user,
+    token: authStore.token,
+    loading: authStore.isLoading,
+    isAuthenticated: authStore.isAuthenticated,
+    login: authStore.login,
+    register: authStore.register,
+    logout: authStore.logout,
   };
 };
+
