@@ -3,6 +3,8 @@ import { Toaster } from "sonner";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
+import VotepollingPage from "@/pages/VotepollingPage";
+import CreatePollingPage from "@/pages/CreatepollingPage";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 
 function App() {
@@ -21,6 +23,22 @@ function App() {
             element={
               <PrivateRoute>
                 <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/create-polling"
+            element={
+              <PrivateRoute>
+                <CreatePollingPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/vote-polling"
+            element={
+              <PrivateRoute>
+                <VotepollingPage />
               </PrivateRoute>
             }
           />
